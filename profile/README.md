@@ -42,7 +42,7 @@ On the server:
 
 ```bash
 # install Cloudy CLI
-npm i -g @cloud-cli/cloudy
+npm i -g @cloud-cli/cli
 
 # generate a random key
 head -c 5000 /dev/urandom | sha512sum
@@ -77,7 +77,7 @@ cy --serve
 On your local environment
 
 ```bash
-npm i -g @cloud-cli/cloudy
+npm i -g @cloud-cli/cli
 ```
 
 ```ts
