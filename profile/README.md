@@ -9,63 +9,55 @@ Everything you can run, apart from the CLI itself, is a separated module.
 
 ## Concepts
 
-We start with a blank machine, say Ubuntu 20+.
+We start with a new machine running GNU/Linux. We will call it the `server`.
+We configure our server to accept HTTP(S) requests and protect it with a secret string.
+We run a command to start a server in this machine.
 
-Then we install and configure our CLI, both on localhost and the remote machine.
+Then we execute commands from anywhere: be it a Linux machine, macOS or a browser.
+We call this our `client`.
 
-Now you have a local tool that can run commands on your server, but no commands available yet.
-New commands are provided by installable modules.
+Then we install modules on the server side to add features and commands.
 
 For example:
 
-- You installed Cloudy on your local machine and your server (e.g. your phone, with Termux, and an instance on a cloud provider).
-- You install the `@cloud-cli/sys` module on your server and start it (running `cy --serve`).
-- Now you can add modules and expanding your features, e.g. `cy sys.install px` to have a reverse proxy, or `cy sys.install le` for Let's Encrypt cert generation.
-- The add-ons are loaded by Cloudy automatically next time you run `cy --serve`.
+- You install Cloudy on your local machine and your server (e.g. your phone, with Termux, and an instance on a cloud provider).
+- You install the `@cloud-cli/sys` module on your server.
+- You add a few modules, like `cy sys.install px` for a reverse proxy, and `cy sys.install le` for Let's Encrypt certificate creation.
+- You start the server with `cy --serve`
 
-Available modules:
+> Note: some modules require additional programs to be present on the server, e.g. `le` requires `certbot` to be present.
 
-- [Local DNS names](https://github.com/cloud-cli/dns)
-- [Local Proxy](https://github.com/cloud-cli/px)
-- [Let's Encrypt](https://github.com/cloud-cli/le)
-- [GitHub WebHooks](https://github.com/cloud-cli/gd)
-- [Environment variables](https://github.com/cloud-cli/env)
-- [SMB Mounts](https://github.com/cloud-cli/smb)
-- [Docker Volumes](https://github.com/cloud-cli/vm)
-- [Local Docker Registry](https://github.com/cloud-cli/dr)
-- [Run Docker Containers](https://github.com/cloud-cli/dx)
+## Available modules
 
+| name | features |
+| - | - |
+| [dns](https://github.com/cloud-cli/dns) | Local DNS resolution |
+| [px](https://github.com/cloud-cli/px) | Reverse Proxy |
+| [le](https://github.com/cloud-cli/le) | Let's Encrypt |
+| [gd](https://github.com/cloud-cli/gd) | GitHub WebHooks |
+| [env](https://github.com/cloud-cli/env) | Environment variables |
+| [smb](https://github.com/cloud-cli/smb) | SMB Mounts |
+| [vm](https://github.com/cloud-cli/vm) | Docker Volumes |
+| [dr](https://github.com/cloud-cli/dr) | Local Docker Registry |
+| [dx](https://github.com/cloud-cli/dx) | Run Docker Containers |
 
-### Examples
+## Step-by-step example
 
-On the server:
+On the `server`:
 
 ```bash
 # install Cloudy CLI
 npm i -g @cloud-cli/cli
 
-# generate a random key
-head -c 5000 /dev/urandom | sha512sum
-
-# copy the hash from above
-echo '[paste-the-generated-key-here]' > key
+# generate a random secret
+head -c 5000 /dev/urandom | sha512sum | cut -d' ' -f 1
 ```
+
+Now open `cloudy.conf.mjs` and configure the server:
 
 ```ts
 // cloudy.conf.mjs
-
-import { init } from '@cloud-cli/cli';
-export default {
-  [init]() {
-    // anything you need to run when the http server starts
-  }
-};
-
-// optional, change remote port. Default is 1234
-export const apiPort = 8844;
-
-// optional, change listening host. Default is localhost (no remote access)
-export const apiHost = '0.0.0.0';
+export const key = '[secret generated above]';
 ```
 
 And then we start the Cloudy server:
@@ -74,7 +66,7 @@ And then we start the Cloudy server:
 cy --serve
 ```
 
-On your local environment
+On your `client` side:
 
 ```bash
 npm i -g @cloud-cli/cli
@@ -82,20 +74,42 @@ npm i -g @cloud-cli/cli
 
 ```ts
 // cloudy.conf.mjs
-// same port as the config on the server
-export const apiPort = 8844;
-export const remoteHost = 'your-server.com';
-export const key = '[paste-the-generated-key-here]';
+export const key = '[secret generated above]';
 ```
 
 Now you can run `cy --help` to get a list of commands available.
 
-## How it works
+## How it works and the HTTP API
 
-- A call to `cy foo.bar --option value` on localhost is converted to a POST request to `your-server.com/foo.bar` with a JSON body `{ "option": "value" }`.
+- A call to `cy foo.bar --option value` on the `client` is converted to a POST request to `your-server.com/foo.bar` with a JSON body `{ "option": "value" }`.
 
-- The server runs your command and returns an output
+- The server runs your command and returns a JSON output, which is then printed back.
+The request looks like this:
 
-- The same commands can be executed with the `cy` tool inside the server and in your local machine.
+```
+POST /foo.bar
+Host: your-server.com
+Authorization: Bearer [cloudy-secret]
 
-- And if you need to run the same but from a browser, the entire CLI is also an API!
+{ "option": "value" }
+```
+
+## Additional settings
+
+```ts
+import { init } from '@cloud-cli/cli';
+
+// optional, any code that you need to run when the server starts
+export default {
+  [init]() {
+    // ...
+  }
+};
+
+// optional, change remote port. Default is 1234.
+export const apiPort = 8844;
+
+// optional, change listening host. Default is 127.0.0.1 (no remote access!)
+export const apiHost = '0.0.0.0';
+
+```
