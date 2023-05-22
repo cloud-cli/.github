@@ -77,7 +77,31 @@ npm i -g @cloud-cli/cli
 export const key = '[secret generated above]';
 ```
 
-Now you can run `cy --help` to get a list of commands available.
+Now you can run `cy --help` to get a list of commands available from a terminal, or you can call the API directly via http:
+
+```http
+GET /
+Authorization: Bearer [secret generated above]
+
+```
+
+Response:
+
+```json
+{
+  "dns": [
+    "add",
+    "remove",
+    "list"
+  ],
+  "env": [
+    "get",
+    "set",
+    "show"
+  ]
+}
+
+```
 
 ## How it works and the HTTP API
 
